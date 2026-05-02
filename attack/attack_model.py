@@ -240,7 +240,7 @@ class AttackModel:
         cfg = self.cfg
         n_expected = self.count_masks(texts)
         stop_id = self.mask_tokenizer.encode(f"<extra_id_{max(n_expected)}>")[0]
-        tokens = self.mask_tokenizer(texts, return_tensors="pt", padding=True).to(accelerator.device)
+        tokens = self.mask_tokenizer(texts, return_tensors="pt", padding=True).to(self.mask_model.device)
         outputs = self.mask_model.generate(**tokens, max_length=150, do_sample=True, top_p=cfg.mask_top_p,
                                       num_return_sequences=1, eos_token_id=stop_id)
         return self.mask_tokenizer.batch_decode(outputs, skip_special_tokens=False)

@@ -8,7 +8,7 @@ import random
 
 from attack.attack_model import AttackModel
 from data.prepare import dataset_prepare
-from attack.utils import Dict
+from attack.utils import Dict, get_device, get_torch_dtype, is_quantization_supported
 
 import yaml
 import datasets
@@ -17,7 +17,7 @@ from accelerate import Accelerator
 from accelerate.logging import get_logger
 import trl
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM, BitsAndBytesConfig, TrainingArguments, AutoConfig, LlamaTokenizer
-from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
+from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training, PeftModel
 
 # Load config file
 with open("configs/config.yaml", 'r') as f:
@@ -36,30 +36,36 @@ logging.basicConfig(
 # Load abs path
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-# Fix the random seed
+# Fix the random seed (device-agnostic)
 seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed)
-torch.cuda.manual_seed_all(seed)
 random.seed(seed)
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+def _load_model(base_name, ckpt_path, base_kwargs, device):
+    """Load a fine-tuned model. Auto-detects LoRA adapter vs full fine-tuned checkpoint."""
+    if os.path.isfile(os.path.join(ckpt_path, "adapter_config.json")):
+        base = AutoModelForCausalLM.from_pretrained(base_name, **base_kwargs)
+        return PeftModel.from_pretrained(base, ckpt_path, is_trainable=False).to(device)
+    return AutoModelForCausalLM.from_pretrained(ckpt_path, **base_kwargs).to(device)
+
 
 ## Load generation models.
 if not cfg["load_attack_data"]:
-    # config = AutoConfig.from_pretrained(cfg["model_name"])
-    # config.use_cache = False
-    torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-    target_model = AutoModelForCausalLM.from_pretrained(cfg["target_model"], quantization_config=BitsAndBytesConfig(load_in_8bit=True),
-                                                        torch_dtype=torch_dtype,
-                                                        local_files_only=True,
-                                                        config=AutoConfig.from_pretrained(cfg["model_name"]),
-                                                        cache_dir=cfg["cache_path"])
-    reference_model = AutoModelForCausalLM.from_pretrained(cfg["reference_model"], quantization_config=BitsAndBytesConfig(load_in_8bit=True),
-                                                           torch_dtype=torch_dtype,
-                                                           local_files_only=True,
-                                                           config=AutoConfig.from_pretrained(cfg["model_name"]),
-                                                           cache_dir=cfg["cache_path"])
+    _device = get_device()
+    torch_dtype = get_torch_dtype(_device)
+    quant_config = BitsAndBytesConfig(load_in_8bit=True) if is_quantization_supported() else None
+
+    _base_kwargs = dict(torch_dtype=torch_dtype, cache_dir=cfg["cache_path"])
+    if quant_config is not None:
+        _base_kwargs["quantization_config"] = quant_config
+
+    target_model = _load_model(cfg["model_name"], cfg["target_model"], _base_kwargs, accelerator.device)
+    reference_model = _load_model(cfg["model_name"], cfg["reference_model"], _base_kwargs, accelerator.device)
 
 
     logger.info("Successfully load models")
@@ -96,15 +102,17 @@ if not cfg["load_attack_data"]:
     train_dataloader = DataLoader(train_dataset, batch_size=cfg["eval_batch_size"])
     eval_dataloader = DataLoader(valid_dataset, batch_size=cfg["eval_batch_size"])
 
-    # Load Mask-f
+    # Load Mask-filling model (T5-base by default).
+    # On MPS/CPU, 8-bit quantization is unavailable; fall back to float16.
     shadow_model = None
     int8_kwargs = {}
     half_kwargs = {}
-    if cfg["int8"]:
-        int8_kwargs = dict(load_in_8bit=True, device_map='auto', torch_dtype=torch.bfloat16)
-    elif cfg["half"]:
-        half_kwargs = dict(torch_dtype=torch.bfloat16)
-    mask_model = AutoModelForSeq2SeqLM.from_pretrained(cfg["mask_filling_model_name"], **int8_kwargs, **half_kwargs).to(accelerator.device)
+    if cfg["int8"] and is_quantization_supported():
+        int8_kwargs = dict(load_in_8bit=True, device_map='auto', torch_dtype=torch_dtype)
+    elif cfg["half"] or (not is_quantization_supported()):
+        half_kwargs = dict(torch_dtype=torch_dtype)
+    # T5 mask-filling runs on CPU — MPS generation produces empty fills, breaking the perturbation signal.
+    mask_model = AutoModelForSeq2SeqLM.from_pretrained(cfg["mask_filling_model_name"], **int8_kwargs, **half_kwargs).to("cpu")
     try:
         n_positions = mask_model.config.n_positions
     except AttributeError:

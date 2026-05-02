@@ -98,7 +98,7 @@ def dataset_prepare(args, tokenizer=None, num_of_sequences=1024, chars_per_token
             batched=True,
             # batch_size=None,
             num_proc=args.preprocessing_num_workers,
-            cache_file_name=f"{args.cache_path}/{args.dataset_name}/{args.dataset_config_name}/train_dataset",
+            cache_file_name=f"{args.cache_path}/{args.dataset_name}/{args.dataset_config_name}/train_dataset.arrow",
             load_from_cache_file=args.use_dataset_cache,
             desc=f"Packing texts in chunks of {block_size} tokens"
         )
@@ -107,7 +107,7 @@ def dataset_prepare(args, tokenizer=None, num_of_sequences=1024, chars_per_token
             batched=True,
             # batch_size=None,
             num_proc=args.preprocessing_num_workers,
-            cache_file_name=f"{args.cache_path}/{args.dataset_name}/{args.dataset_config_name}/valid_dataset",
+            cache_file_name=f"{args.cache_path}/{args.dataset_name}/{args.dataset_config_name}/valid_dataset.arrow",
             load_from_cache_file=args.use_dataset_cache,
             desc=f"Packing texts in chunks of {block_size} tokens"
         )

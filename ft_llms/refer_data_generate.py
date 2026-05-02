@@ -20,8 +20,11 @@ import trl
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM, BitsAndBytesConfig, TrainingArguments, AutoConfig, LlamaTokenizer
 
 import os
-os.environ['HTTP_PROXY'] = 'http://fuwenjie:19990621f@localhost:7890'
-os.environ['HTTPS_PROXY'] = 'http://fuwenjie:19990621f@localhost:7890'
+# Proxy settings removed (were hardcoded to original author's machine).
+# Set HTTP_PROXY / HTTPS_PROXY in your shell environment if you need a proxy.
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from attack.utils import get_device as _get_device, get_torch_dtype as _get_torch_dtype
 
 # Load config file
 accelerator = Accelerator()
@@ -45,11 +48,12 @@ print(accelerator.device)
 
 config = AutoConfig.from_pretrained(cfg.model_name)
 config.use_cache = False
-bnb_config = None
-torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+# Select dtype for the available device (MPS doesn't support bfloat16)
+_device = _get_device()
+torch_dtype = _get_torch_dtype(_device)
+bnb_config = None  # no quantization (CUDA-only); use float16/float32 instead
 model = AutoModelForCausalLM.from_pretrained(cfg.target_model, quantization_config=bnb_config,
                                                     torch_dtype=torch_dtype,
-                                                    local_files_only=True,
                                                     config=config,
                                                     cache_dir=cfg.cache_path)
 model_type = config.to_dict()["model_type"]
@@ -97,7 +101,9 @@ generated_dataset = Dataset.from_dict(generated_dataset)
 if cfg.model_name == "/mnt/data0/fuwenjie/MIA-LLMs/cache/models--decapoda-research--llama-7b-hf/snapshots/5f98eefcc80e437ef68d457ad7bf167c2c6a1348":
     cfg.model_name = "decapoda-research/llama-7b-hf"
 save_dir = f"{cfg.cache_path}/{cfg.dataset_name}/{cfg.dataset_config_name}/refer@{cfg.model_name}/"
-generated_dataset.save_to_disk(save_dir + f"{accelerator.device}")
+# Sanitize device string — colons are illegal in macOS paths (e.g. "mps:0" → "mps_0")
+device_str = str(accelerator.device).replace(":", "_")
+generated_dataset.save_to_disk(save_dir + device_str)
 
 accelerator.wait_for_everyone()
 

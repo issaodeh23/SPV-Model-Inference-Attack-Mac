@@ -6,6 +6,48 @@ import torch
 import numpy as np
 
 
+# ---------------------------------------------------------------------------
+# Mac / MPS compatibility helpers
+# ---------------------------------------------------------------------------
+
+def get_device() -> torch.device:
+    """Return the best available device: CUDA > MPS (Apple Silicon) > CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def get_torch_dtype(device: torch.device = None) -> torch.dtype:
+    """
+    Return the preferred floating-point dtype for the given device.
+
+    - CUDA with bfloat16 support  → torch.bfloat16
+    - MPS (Apple Silicon)         → torch.float16  (bfloat16 not supported)
+    - CPU / fallback              → torch.float32
+    """
+    if device is None:
+        device = get_device()
+    device_str = str(device)
+    if device_str.startswith("cuda") and torch.cuda.is_bf16_supported():
+        return torch.bfloat16
+    if device_str == "mps":
+        return torch.float32  # float16 on MPS causes "Placeholder storage" errors at inference
+    return torch.float32
+
+
+def is_quantization_supported() -> bool:
+    """
+    8-bit / 4-bit bitsandbytes quantization is only supported on CUDA.
+    Returns False on MPS and CPU so callers can skip BitsAndBytesConfig.
+    """
+    return torch.cuda.is_available()
+
+
+# ---------------------------------------------------------------------------
+
+
 def get_logger(name: str, level: Literal["info", "warning", "debug"]) -> logging.Logger:
     rich_handler = RichHandler(level=logging.INFO, rich_tracebacks=True, markup=True)
 
@@ -99,7 +141,8 @@ def ndarray_to_tensor(*ndarrays):
     Returns:
         tuple of torch.Tensor: A tuple of PyTorch tensors with the same data as the input ndarrays.
     """
-    tensors = tuple(torch.from_numpy(ndarray).cuda().float() for ndarray in ndarrays)
+    device = get_device()
+    tensors = tuple(torch.from_numpy(ndarray).to(device).float() for ndarray in ndarrays)
     return tensors
 
 

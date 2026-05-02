@@ -1,0 +1,20 @@
+# Accelerate configuration for Apple Silicon (MPS) — single-device, no distributed training.
+# Usage:
+#   accelerate launch --config_file accelerate_config_mac.yaml ft_llms/llms_finetune.py ...
+# Or copy this to ~/.cache/huggingface/accelerate/default_config.yaml to make it the default.
+
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: 'NO'
+downcast_bf16: 'no'
+machine_rank: 0
+main_training_function: main
+mixed_precision: 'no'       # MPS doesn't support the standard fp16/bf16 mixed precision flags
+num_machines: 1
+num_processes: 1
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false

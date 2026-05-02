@@ -1,15 +1,17 @@
 import argparse
 
 import datasets
-import trl
-from trl import SFTTrainer
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TrainingArguments, AutoConfig
+from transformers import (AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig,
+                          TrainingArguments, AutoConfig, Trainer, DataCollatorForLanguageModeling)
 from accelerate import Accelerator
 from datasets import Dataset, load_from_disk
 import torch
 import logging
 import os
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training, PrefixTuningConfig, PromptEncoderConfig, IA3Config
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from attack.utils import get_device as _get_device, get_torch_dtype as _get_torch_dtype, is_quantization_supported as _is_quant_supported
 import pandas as pd
 import sys
 here = os.path.dirname(__file__)
@@ -18,9 +20,8 @@ from data.prepare import dataset_prepare
 from attack.utils import create_folder
 from transformers import LlamaTokenizer, get_scheduler
 import os
-
-os.environ['HTTP_PROXY'] = 'http://fuwenjie:19990621f@192.168.75.13:7890'
-os.environ['HTTPS_PROXY'] = 'http://fuwenjie:19990621f@192.168.75.13:7890'
+# Proxy settings removed (were hardcoded to original author's machine).
+# Set HTTP_PROXY / HTTPS_PROXY in your shell environment if you need a proxy.
 
 from utils import get_logger, constantlengthdatasetiter, print_trainable_parameters
 # trl.trainer.ConstantLengthDataset.__dict__["__iter__"] = constantlengthdatasetiter
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     accelerator = Accelerator()
 
     if args.token is None:
-        access_token = os.getenv("HF_TOKEN", "")
+        access_token = os.getenv("HF_TOKEN") or None  # None = no auth header (needed for public models)
     else:
         access_token = args.token
 
@@ -96,15 +97,22 @@ if __name__ == "__main__":
 
     use_flash_attention = False
 
+    # Flash attention requires CUDA with compute capability >= 8 (Ampere+).
+    # It is not available on MPS (Apple Silicon) or CPU.
     if not args.disable_flash_attention and model_type != "llama":
         logger.info("Model is not llama, disabling flash attention...")
     elif args.disable_flash_attention and model_type == "llama":
         logger.info("Model is llama, could be using flash attention...")
-    elif not args.disable_flash_attention and torch.cuda.get_device_capability()[0] >= 8:
+    elif (not args.disable_flash_attention
+          and model_type == "llama"
+          and torch.cuda.is_available()
+          and torch.cuda.get_device_capability()[0] >= 8):
         from ft_llms.llama_patch import replace_attn_with_flash_attn
         logger.info("Using flash attention for llama...")
         replace_attn_with_flash_attn()
         use_flash_attention = True
+    else:
+        logger.info("Flash attention not available on this device (MPS/CPU or CUDA < 8.0), skipping.")
 
 
     if "WANDB_PROJECT" not in os.environ:
@@ -139,23 +147,30 @@ if __name__ == "__main__":
     block_size = args.block_size
     logger.info("Using a block size of %d", block_size)
 
-    if args.use_int4:
+    _device = _get_device()
+    torch_dtype = _get_torch_dtype(_device)
+    _quant_ok = _is_quant_supported()
+
+    if args.use_int4 and _quant_ok:
         logger.info("Using int4 quantization")
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+            bnb_4bit_compute_dtype=torch_dtype,
             bnb_4bit_use_double_quant=True,
         )
         optimizer = "adamw_bnb_8bit"
-    elif args.use_int8:
+    elif args.use_int8 and _quant_ok:
         logger.info("Using int8 quantization")
         bnb_config = BitsAndBytesConfig(
             load_in_8bit=True,
         )
         optimizer = "adamw_bnb_8bit"
     else:
-        logger.info("Using no quantization")
+        if (args.use_int4 or args.use_int8) and not _quant_ok:
+            logger.info("Quantization requested but not supported on this device (MPS/CPU). Falling back to no quantization.")
+        else:
+            logger.info("Using no quantization")
         bnb_config = None
         optimizer = "adamw_torch"
 
@@ -186,7 +201,6 @@ if __name__ == "__main__":
             feedforward_modules=["down_proj"],
         )
 
-    torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     model = AutoModelForCausalLM.from_pretrained(args.model_name, token=access_token, quantization_config=bnb_config,
                                                  trust_remote_code=args.trust_remote_code, cache_dir=args.cache_path,
                                                  torch_dtype=torch_dtype, config=config, **kwargs)
@@ -227,13 +241,24 @@ if __name__ == "__main__":
         valid_dataset = Dataset.from_dict(valid_dataset[args.eval_sta_idx:args.eval_end_idx])
         # train_dataset = load_from_disk("/mnt/data0/fuwenjie/MIA-LLMs/cache/ag_news/None/refer@gpt2")
 
-    logger.info(f"Training with {Accelerator().num_processes} GPUs")
+    # bf16/fp16 flags: only valid on CUDA. MPS uses its own mixed-precision.
+    _use_bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+    _use_fp16 = torch.cuda.is_available() and not _use_bf16
+    # On MPS both flags must be False — HuggingFace Trainer handles MPS natively.
+
+    logger.info(f"Training with {Accelerator().num_processes} device(s) | device={_device} | dtype={torch_dtype}")
+
+    # eval_strategy replaces deprecated evaluation_strategy in transformers >= 4.46
+    import transformers as _transformers
+    _tf_version = tuple(int(x) for x in _transformers.__version__.split(".")[:2])
+    _eval_strategy_key = "eval_strategy" if _tf_version >= (4, 46) else "evaluation_strategy"
+
     training_args = TrainingArguments(
         do_train=True,
         do_eval=True,
         output_dir=args.output_dir,
         dataloader_drop_last=True,
-        evaluation_strategy="steps",
+        **{_eval_strategy_key: "steps"},
         save_strategy="steps",
         logging_strategy="steps",
         num_train_epochs=args.epochs,
@@ -250,21 +275,32 @@ if __name__ == "__main__":
         gradient_checkpointing=args.gradient_checkpointing,
         weight_decay=args.weight_decay,
         adam_epsilon=1e-6,
-        report_to="wandb",
+        report_to="none",  # set WANDB_PROJECT env var to re-enable wandb
         load_best_model_at_end=False,
         save_total_limit=args.save_limit,
-        bf16=True if torch.cuda.is_bf16_supported() else False,
-        fp16=False if torch.cuda.is_bf16_supported() else True,
+        bf16=_use_bf16,
+        fp16=_use_fp16,
     )
 
+    # Tokenize datasets — replaces SFTTrainer which has breaking API changes across trl versions.
+    # Standard HuggingFace Trainer is stable and does the same thing for causal LM fine-tuning.
+    def tokenize_fn(examples):
+        return tokenizer(examples["text"], truncation=True, max_length=block_size, padding=False)
+
+    logger.info("Tokenizing train dataset...")
+    train_dataset = train_dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
+    logger.info("Tokenizing eval dataset...")
+    valid_dataset = valid_dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
+
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
     # get trainer
-    trainer = SFTTrainer(
+    trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
-        dataset_text_field="text",
-        tokenizer=tokenizer,
+        data_collator=data_collator,
     )
 
     # train
