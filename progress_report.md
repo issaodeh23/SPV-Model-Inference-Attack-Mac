@@ -1,6 +1,6 @@
 
 
-## 2. Foundations — what I read this term
+## 1. Foundations — what I read this term
 
 I worked through the reading list my advisor assigned in three blocks. Each
 gave me a different layer of the picture.
@@ -32,7 +32,7 @@ information from the Unified Kill Chain was vs. wasn't present in each.
   Fine-tuned LLMs via Self-prompt Calibration*. The technical anchor for
   the rest of the term.
 
-## 3. Cybersecurity LLM benchmark survey
+## 2. Cybersecurity LLM benchmark survey
 
 To make (1) above concrete, I built a structured survey of CTI / security
 LLM benchmarks. The result is `Cybersecurity_LLM_Benchmarks.xlsx` in this
@@ -73,9 +73,9 @@ but most older benchmarks don't. That motivates having a tool for actually
 *measuring* whether a given model has memorized a given input — which is
 exactly what SPV-MIA does.
 
-## 4. Technical deliverable — porting and validating SPV-MIA
+## 3. Technical deliverable — porting and validating SPV-MIA
 
-### 4.1 What SPV-MIA is
+### 3.1 What SPV-MIA is
 
 SPV-MIA (Fu et al., NeurIPS 2024) is a state-of-the-art **membership
 inference attack** for fine-tuned LLMs. Given a candidate text and a
@@ -91,7 +91,7 @@ backbone models *before* we use those benchmarks to claim a BRON-agent is
 "smarter." Without that, a high CTIBench score might just be a
 recall-from-pretraining score.
 
-### 4.2 Porting the reference implementation to Apple Silicon
+### 3.2 Porting the reference implementation to Apple Silicon
 
 The original SPV-MIA repo targets NVIDIA / CUDA. ALFA-Mac is Apple Silicon
 (MPS backend, 192 GB unified memory). I made the following changes to get
@@ -113,7 +113,7 @@ it to run:
   five SPV-MIA stages end-to-end (target fine-tune → self-prompt reference
   data generation → reference fine-tune → config update → attack).
 
-### 4.3 Paper-comparable baseline
+### 3.3 Paper-comparable baseline
 
 I configured the pipeline to the paper's Section 5.1 setup: `gpt2`
 (124M) — *not* gpt2-xl, which is what the paper says — fine-tuned with
@@ -126,7 +126,7 @@ AUC = 1.0 — perfect memorization from full fine-tuning of an oversized
 model on a small corpus. Useful diagnostic but not paper-comparable. The
 current pipeline matches the paper's actual configuration.
 
-### 4.4 Independent validation — post-cutoff Wikipedia
+### 3.4 Independent validation — post-cutoff Wikipedia
 
 **Motivation.** A reasonable critic could argue the SPV-MIA AUC on
 Wikitext-103 is inflated because GPT-2 has already seen Wikipedia during
@@ -173,7 +173,7 @@ the unperturbed original — only the attack stage is affected, the
 fine-tune runs are unchanged. The bug also exists upstream and this patch
 could go back as a PR.
 
-### 4.5 Results
+### 3.5 Results
 
 | Metric | This run (post-cutoff Wikipedia) | Paper baseline (Wikitext-103) |
 |---|---|---|
@@ -200,7 +200,7 @@ are the load-bearing metrics at this sample size, and both are
 paper-equivalent.** A full-budget rerun (§4.6) gives a directly
 comparable low-FPR number.
 
-### 4.6 Why we stopped at the 200-sample run
+### 3.6 Why we stopped at the 200-sample run
 
 I did attempt a full-budget rerun on ALFA-Mac (`maximum_samples=1000`,
 `sample_number=10`) to get a directly paper-comparable TPR@1%FPR. The
@@ -222,7 +222,7 @@ base GPT-2 has never seen**, within 1.1 percentage points of the paper's
 0.975 on Wikitext-103. The validation question the experiment was designed
 to answer is settled.
 
-## 5. What I learned
+## 4. What I learned
 
 - **Cybersecurity-LLM benchmarks are mostly memorization tests in
   disguise.** Reading the design of CTIBench / SECURE / CyberMetric next
@@ -248,7 +248,7 @@ to answer is settled.
   design choice — the entire post-cutoff Wikipedia validation only works
   because we can name a concrete date that GPT-2 cannot have seen past.
 
-## 6. Deliverables in this folder
+## 5. Deliverables in this folder
 
 | Path | What it is |
 |---|---|
@@ -262,7 +262,7 @@ to answer is settled.
 On ALFA-Mac the SPV-MIA repo is at `~/SPV-MIA/` and the harness at
 `~/post_cutoff_wiki_test/`. Everything runs under `tmux`.
 
-## 7. Next steps
+## 6. Next steps
 
 1. **Re-run the attack stage on a CUDA machine** to fill in the
    paper-budget TPR@1%FPR. The harness is portable; only the host needs
