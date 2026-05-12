@@ -1,9 +1,3 @@
-# UROP Spring 2026 — Progress Report
-
-**Student:** Issa Odeh
-**Supervisor:** _[advisor name — fall back to Una-May O'Reilly if unfilled]_
-**Group:** ALFA Group, MIT CSAIL
-**Date:** May 2026
 
 ---
 
