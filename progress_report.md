@@ -1,38 +1,11 @@
 
----
-
-## 1. Project context
-
-The ALFA group at CSAIL maintains **BRON**, a bidirectional knowledge graph
-that links the layers of cyber threat data — MITRE ATT&CK tactics and
-techniques, CAPEC attack patterns, CWE weaknesses, CVEs, CPE platform
-configurations, and the defensive counterparts in D3FEND / Engage / CAR /
-ATLAS (Hemberg et al., 2020). A long-term direction in the group is to wrap
-BRON as a tool inside an **agentic LLM**, so that an analyst-style model can
-do structured graph traversal across threat data instead of relying on
-memorized text or unstructured retrieval.
-
-My UROP this term sits inside that arc. To get to a useful BRON-agent
-evaluation, the group needs two things in place first:
-
-1. **A clear picture of what cybersecurity LLM benchmarks actually
-   exist**, what each one measures, and which are the right fit for testing
-   a BRON-augmented agent.
-2. **A way to detect when a benchmark result is contaminated by training
-   data leakage** — i.e., the LLM has already seen the "test" question
-   during pretraining, so high accuracy says nothing about reasoning.
-
-I tackled (1) as a survey activity and (2) as the term's technical
-deliverable: a working, validated implementation of the **SPV-MIA**
-membership inference attack (Fu et al., NeurIPS 2024). The rest of this
-report walks through both.
 
 ## 2. Foundations — what I read this term
 
 I worked through the reading list my advisor assigned in three blocks. Each
 gave me a different layer of the picture.
 
-**Block 1 — BRON and threat-data fundamentals (Feb 17):**
+**Block 1 — BRON and threat-data fundamentals **
 - Hemberg et al. (2020), *Linking Threat Tactics, Techniques and Patterns
   with Defensive Weaknesses, Vulnerabilities, and Affected Platform
   Configurations for Cyber Hunting* — introduced the BRON graph schema.
@@ -42,7 +15,7 @@ gave me a different layer of the picture.
   understand what real threat reports look like and what BRON helps reason
   over.
 
-**Block 2 — LLMs operating over security graphs (Feb 24):**
+**Block 2 — LLMs operating over security graphs**
 - *TRACE* — using LLMs to expand and enrich structures like BRON.
 - *Anticipating Adversarial Behavior in DevSecOps through LLMs* — how an
   LLM might consume a graph like BRON during a developer-assistance flow.
@@ -54,7 +27,7 @@ I also did a hands-on exercise: stood up BRON locally with Docker and
 Neo4j, browsed a few APT-campaign profiles, and tried to identify what
 information from the Unified Kill Chain was vs. wasn't present in each.
 
-**Block 3 — Membership inference for fine-tuned LLMs (Mar 17):**
+**Block 3 — Membership inference for fine-tuned LLMs**
 - Fu et al. (NeurIPS 2024), *SPV-MIA: Membership Inference Attacks against
   Fine-tuned LLMs via Self-prompt Calibration*. The technical anchor for
   the rest of the term.
