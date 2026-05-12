@@ -1,6 +1,6 @@
 # SPV-MIA — Mac Port and Post-Cutoff Wikipedia Validation
 
-> 📌 **UROP Spring 2026 — ALFA Group, MIT CSAIL**
+> 📌 **UROP Spring 2026**
 >
 > - **[Term Progress Report →](./progress_report.md)** — full write-up: BRON context, term readings, cybersecurity LLM benchmark survey, Mac port of SPV-MIA, post-cutoff Wikipedia validation, results.
 > - **[Experiment Report →](./post_cutoff_wiki_test/results/REPORT.md)** — standalone report with AUC, ROC plot, sample articles for the post-cutoff Wikipedia run.
