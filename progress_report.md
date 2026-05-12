@@ -256,23 +256,3 @@ to answer is  done.
 
 On ALFA-Mac the SPV-MIA repo is at `~/SPV-MIA/` and the harness at
 `~/post_cutoff_wiki_test/`. Everything runs under `tmux`.
-
-## 6. Next steps
-
-1. **Re-run the attack stage on a CUDA machine** to fill in the
-   paper-budget TPR@1%FPR. The harness is portable; only the host needs
-   a GPU. With T5 on GPU this finishes in <2 hr instead of 30+.
-2. **Run SPV-MIA against a TIER 1 benchmark's underlying data source.**
-   The natural target: take CTIBench's CTI-MCQ questions, run SPV-MIA on
-   the candidate backbone models (e.g. Llama-3, GPT-J), and quantify how
-   much of CTIBench's measured accuracy is just memorization.
-3. **Try the harness with a more recent target model** whose training
-   cutoff is documented (e.g. Pythia-1B). The same scripts work; only
-   `--cutoff` changes.
-4. **Push the T5 retry-cap patch upstream** as a PR to the SPV-MIA repo —
-   useful regression-test of the harness and a small but real contribution
-   to the public implementation.
-5. **Begin scoping the BRON-agent eval.** With the benchmark survey now in
-   place (§3) and an MIA tool to control for leakage (§4), the next
-   logical step is wiring BRON as a retrieval tool inside an LLM agent
-   loop and running it against the Tier-1 benchmarks.
