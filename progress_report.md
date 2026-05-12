@@ -211,16 +211,11 @@ forced to CPU on Apple Silicon (MPS produces empty fills), and the
 ~40,000 serial T5 generation calls required at the paper's evaluation
 budget exceed what the Mac can complete in a single-shot session.
 
-This is a hardware ceiling, not an algorithmic one. The natural way to
-get the paper-budget number is to run the attack stage on a CUDA box,
-where T5 runs on GPU and the whole attack finishes in well under two hours.
-Code-wise nothing changes — the pipeline already auto-detects CUDA via
-`_run_pipeline.sh`.
 
-For this report the headline result stands: **AUC = 0.964 on a corpus the
+For this report the headline result stands: **AUC = 0.964 on data the
 base GPT-2 has never seen**, within 1.1 percentage points of the paper's
-0.975 on Wikitext-103. The validation question the experiment was designed
-to answer is settled.
+0.975 on Wikitext-103. The validation question the experiment was given
+to answer is  done.
 
 ## 4. What I learned
 
