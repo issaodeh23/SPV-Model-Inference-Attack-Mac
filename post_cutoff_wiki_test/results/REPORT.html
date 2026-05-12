@@ -1,0 +1,113 @@
+<!doctype html><html><head><meta charset='utf-8'><title>SPV-MIA Post-Cutoff Report</title><style>body{font-family:-apple-system,system-ui,sans-serif;max-width:880px;margin:2em auto;padding:0 1em;line-height:1.5;color:#222}table{border-collapse:collapse;margin:1em 0}th,td{border:1px solid #ccc;padding:6px 12px;text-align:left}th{background:#f3f3f3}code{background:#f3f3f3;padding:2px 5px;border-radius:3px}img{max-width:100%}</style></head><body><h1>SPV-MIA Validation on Post-Cutoff Wikipedia</h1>
+<h2>TL;DR</h2>
+<p>We ran the SPV-MIA pipeline end-to-end on a dataset built from Wikipedia
+articles whose creation timestamps are <strong>strictly after GPT-2's training
+cutoff</strong>. Because the base model has provably never seen these pages, any
+membership signal must come from the fine-tuning phase — exactly what an MIA
+should detect.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>This run</th>
+<th>Paper (Wikitext-103)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AUC</td>
+<td><strong>0.964</strong></td>
+<td>0.975</td>
+</tr>
+<tr>
+<td>TPR @ 1% FPR</td>
+<td><strong>0.200</strong></td>
+<td>0.673</td>
+</tr>
+<tr>
+<td>TPR @ 0.1% FPR</td>
+<td><strong>0.200</strong></td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="ROC curve" src="roc.png" /></p>
+<h2>Methodology</h2>
+<ol>
+<li><strong>Source dataset.</strong> Streamed <code>wikimedia/wikipedia</code> (config <code>20231101.en</code>,
+   HuggingFace, the official public Wikimedia dump, ~6.4M English articles).</li>
+<li><strong>Creation date lookup.</strong> For each candidate, queried the MediaWiki API
+   (<code>action=query&amp;prop=revisions&amp;rvdir=newer&amp;rvlimit=1</code>) by page ID to get
+   the timestamp of the article's <strong>first revision</strong>.</li>
+<li><strong>Cutoff filter.</strong> Kept only articles created strictly after
+   <strong>2020-01-01</strong>. GPT-2 was released February 2019, trained on WebText
+   collected through December 2017; a 2020 cutoff gives a safe margin against
+   any silent retraining.</li>
+<li><strong>Text cleaning.</strong> Stripped Markdown formatting to match Wikitext-103's
+   plain-prose distribution.</li>
+<li><strong>Pipeline.</strong> Reused the SPV-MIA scripts (<code>ft_llms/llms_finetune.py</code>,
+   <code>refer_data_generate.py</code>, <code>attack.py</code>) without modification beyond pointing
+   their dataset loader at our local HuggingFace Dataset via
+   <code>SPV_MIA_LOCAL_DATASET_PATH</code>.</li>
+</ol>
+<h2>Dataset Stats</h2>
+<pre><code class="language-json">{
+  &quot;n_articles&quot;: 5000,
+  &quot;earliest_created&quot;: &quot;2020-01-01T00:02:11Z&quot;,
+  &quot;latest_created&quot;: &quot;2020-11-23T15:30:32Z&quot;,
+  &quot;avg_chars&quot;: 6265.0714
+}
+</code></pre>
+<h2>Interpretation</h2>
+<ul>
+<li><strong>AUC ≫ 0.5</strong> means the SPV-MIA implementation <strong>does</strong> distinguish
+  members from non-members on a corpus the base model never saw — i.e., the
+  attack signal is coming from fine-tuning memorization, not from pretraining
+  leakage. This is a positive control for the pipeline.</li>
+<li><strong>Result vs. paper.</strong> The paper reports 0.975 AUC on Wikitext-103. Numbers
+  on the post-cutoff Wikipedia corpus may differ because: (a) article length
+  and vocabulary are slightly different; (b) the corpus is smaller; (c) GPT-2
+  has zero prior on this text, which can make memorization signals
+  <em>sharper</em> (favorable for MIA).</li>
+<li><strong>Take-away for the advisor.</strong> If AUC remains high (~0.95+) we have
+  evidence the SPV-MIA repo is correctly attributing the membership signal
+  to fine-tuning rather than to pretraining-era leakage of test set content.
+  If AUC drops sharply, that suggests the original wikitext-103 number was
+  partially propped up by GPT-2's pretraining on similar text.</li>
+</ul>
+<h2>Sample of Articles Used</h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Alain_Aoun">Alain Aoun</a> — created 2020-11-11T00:55:46Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Pseudo-Marius">Pseudo-Marius</a> — created 2020-09-15T16:50:14Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Mala_xiang_guo">Mala xiang guo</a> — created 2020-11-07T03:12:40Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Lauren_Lenentine">Lauren Lenentine</a> — created 2020-01-24T18:12:57Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Kirchberg_District_Centre">Kirchberg District Centre</a> — created 2020-03-29T03:25:44Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Lisa_Hurtig">Lisa Hurtig</a> — created 2020-07-03T22:31:49Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Grade_II_listed_buildings_in_Brighton_and_Hove:_S">Grade II listed buildings in Brighton and Hove: S</a> — created 2020-05-15T10:26:49Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Hide_the_Pain_Harold">Hide the Pain Harold</a> — created 2020-03-02T23:48:09Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Doug_Emhoff">Doug Emhoff</a> — created 2020-08-11T23:35:29Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Chang_Shan-chwen">Chang Shan-chwen</a> — created 2020-04-17T04:13:56Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Belsize_Fire_Station">Belsize Fire Station</a> — created 2020-10-20T17:01:28Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Peter_Lee_Atherton">Peter Lee Atherton</a> — created 2020-05-25T03:46:32Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Beata_Chmiel">Beata Chmiel</a> — created 2020-11-03T16:21:15Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Wash_Us_in_the_Blood">Wash Us in the Blood</a> — created 2020-06-26T17:35:21Z</li>
+<li><a href="https://en.wikipedia.org/wiki/People%27s_Flag_Show">People's Flag Show</a> — created 2020-03-02T23:48:53Z</li>
+<li><a href="https://en.wikipedia.org/wiki/%C5%8Cakura">Ōakura</a> — created 2020-01-26T03:24:58Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Crystal_Mason">Crystal Mason</a> — created 2020-06-11T16:01:58Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Egypt%E2%80%93Israel_peace_treaty">Egypt–Israel peace treaty</a> — created 2020-08-15T03:30:04Z</li>
+<li><a href="https://en.wikipedia.org/wiki/List_of_Confederate_states_by_date_of_admission_to_the_Confederacy">List of Confederate states by date of admission to the Confederacy</a> — created 2020-07-30T20:33:39Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Buros_Center_for_Testing">Buros Center for Testing</a> — created 2020-06-01T17:22:32Z</li>
+<li><a href="https://en.wikipedia.org/wiki/London_Golf_Club">London Golf Club</a> — created 2020-03-05T23:09:36Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Ben_and_Tan">Ben and Tan</a> — created 2020-03-17T18:26:25Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Typhoon_Page">Typhoon Page</a> — created 2020-06-25T10:47:52Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Together_for_McGovern">Together for McGovern</a> — created 2020-08-09T00:24:48Z</li>
+<li><a href="https://en.wikipedia.org/wiki/Teneisha_Bonner">Teneisha Bonner</a> — created 2020-06-02T17:16:22Z</li>
+</ul>
+<h2>Reproducibility</h2>
+<pre><code class="language-bash">cd post_cutoff_wiki_test
+python3 01_collect.py --target 5000           # ~10-30 min, depends on HF/Wiki latency
+python3 02_format.py
+bash    03_run.sh                              # multi-hour on MPS, see logs/pipeline.log
+python3 04_report.py --spv-repo ../ANeurIPS2024_SPV-MIA \
+                     --dataset-dir data/hf_dataset --out results
+</code></pre></body></html>

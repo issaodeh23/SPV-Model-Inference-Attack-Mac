@@ -1,0 +1,4 @@
+datasets>=2.18
+requests>=2.31
+matplotlib>=3.7
+markdown>=3.5

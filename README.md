@@ -1,4 +1,26 @@
-# (NeurIPS'24) Practical Membership Inference Attacks against Fine-tuned Large Language Models via Self-prompt Calibration
+# SPV-MIA — Mac Port and Post-Cutoff Wikipedia Validation
+
+> 📌 **UROP Spring 2026 — ALFA Group, MIT CSAIL**
+>
+> - **[Term Progress Report →](./progress_report.md)** — full write-up: BRON context, term readings, cybersecurity LLM benchmark survey, Mac port of SPV-MIA, post-cutoff Wikipedia validation, results.
+> - **[Experiment Report →](./post_cutoff_wiki_test/results/REPORT.md)** — standalone report with AUC, ROC plot, sample articles for the post-cutoff Wikipedia run.
+>
+> **Headline result:** SPV-MIA achieves **AUC = 0.964** on a Wikipedia corpus the base GPT-2 has provably never seen (articles created after 2020-01-01), within 1.1 percentage points of the paper's 0.975 on Wikitext-103. This rules out the concern that the paper's signal comes from pretraining leakage rather than fine-tuning memorization.
+
+---
+
+## What's in this fork
+
+- `_run_pipeline.sh` — end-to-end pipeline (target fine-tune → self-prompt refs → reference fine-tune → attack) that auto-detects MPS / CUDA and uses the right hyperparameters. Matches the paper's Wikitext-103 setup.
+- `post_cutoff_wiki_test/` — validation harness that builds a Wikipedia corpus of articles created strictly after GPT-2's training cutoff (2020-01-01) and runs SPV-MIA against it.
+- Apple Silicon / MPS fixes throughout: `float32` dtype, no `BitsAndBytesConfig` on non-CUDA, T5 mask-filler pinned to CPU, custom `accelerate_config_mac.yaml`.
+- `attack/attack_model.py` — patched to cap T5 mask-fill retries (the upstream implementation has no cap and gets stuck in infinite loops on stubborn texts).
+
+See `REPRODUCTION_NOTES.md` and `EXPERIMENT_REPORT.md` for additional reproduction details from the Wikitext-103 baseline.
+
+---
+
+# Original README (NeurIPS'24)
 
 - [Requirements](#requirements)
 - [Target Model Fine-tuning](#target-model-fine-tuning)

@@ -1,0 +1,27 @@
+# Sample of post-cutoff articles used
+
+- [Alain Aoun](https://en.wikipedia.org/wiki/Alain_Aoun) — created 2020-11-11T00:55:46Z
+- [Pseudo-Marius](https://en.wikipedia.org/wiki/Pseudo-Marius) — created 2020-09-15T16:50:14Z
+- [Mala xiang guo](https://en.wikipedia.org/wiki/Mala_xiang_guo) — created 2020-11-07T03:12:40Z
+- [Lauren Lenentine](https://en.wikipedia.org/wiki/Lauren_Lenentine) — created 2020-01-24T18:12:57Z
+- [Kirchberg District Centre](https://en.wikipedia.org/wiki/Kirchberg_District_Centre) — created 2020-03-29T03:25:44Z
+- [Lisa Hurtig](https://en.wikipedia.org/wiki/Lisa_Hurtig) — created 2020-07-03T22:31:49Z
+- [Grade II listed buildings in Brighton and Hove: S](https://en.wikipedia.org/wiki/Grade_II_listed_buildings_in_Brighton_and_Hove:_S) — created 2020-05-15T10:26:49Z
+- [Hide the Pain Harold](https://en.wikipedia.org/wiki/Hide_the_Pain_Harold) — created 2020-03-02T23:48:09Z
+- [Doug Emhoff](https://en.wikipedia.org/wiki/Doug_Emhoff) — created 2020-08-11T23:35:29Z
+- [Chang Shan-chwen](https://en.wikipedia.org/wiki/Chang_Shan-chwen) — created 2020-04-17T04:13:56Z
+- [Belsize Fire Station](https://en.wikipedia.org/wiki/Belsize_Fire_Station) — created 2020-10-20T17:01:28Z
+- [Peter Lee Atherton](https://en.wikipedia.org/wiki/Peter_Lee_Atherton) — created 2020-05-25T03:46:32Z
+- [Beata Chmiel](https://en.wikipedia.org/wiki/Beata_Chmiel) — created 2020-11-03T16:21:15Z
+- [Wash Us in the Blood](https://en.wikipedia.org/wiki/Wash_Us_in_the_Blood) — created 2020-06-26T17:35:21Z
+- [People's Flag Show](https://en.wikipedia.org/wiki/People%27s_Flag_Show) — created 2020-03-02T23:48:53Z
+- [Ōakura](https://en.wikipedia.org/wiki/%C5%8Cakura) — created 2020-01-26T03:24:58Z
+- [Crystal Mason](https://en.wikipedia.org/wiki/Crystal_Mason) — created 2020-06-11T16:01:58Z
+- [Egypt–Israel peace treaty](https://en.wikipedia.org/wiki/Egypt%E2%80%93Israel_peace_treaty) — created 2020-08-15T03:30:04Z
+- [List of Confederate states by date of admission to the Confederacy](https://en.wikipedia.org/wiki/List_of_Confederate_states_by_date_of_admission_to_the_Confederacy) — created 2020-07-30T20:33:39Z
+- [Buros Center for Testing](https://en.wikipedia.org/wiki/Buros_Center_for_Testing) — created 2020-06-01T17:22:32Z
+- [London Golf Club](https://en.wikipedia.org/wiki/London_Golf_Club) — created 2020-03-05T23:09:36Z
+- [Ben and Tan](https://en.wikipedia.org/wiki/Ben_and_Tan) — created 2020-03-17T18:26:25Z
+- [Typhoon Page](https://en.wikipedia.org/wiki/Typhoon_Page) — created 2020-06-25T10:47:52Z
+- [Together for McGovern](https://en.wikipedia.org/wiki/Together_for_McGovern) — created 2020-08-09T00:24:48Z
+- [Teneisha Bonner](https://en.wikipedia.org/wiki/Teneisha_Bonner) — created 2020-06-02T17:16:22Z

@@ -282,9 +282,12 @@ class AttackModel:
         extracted_fills = self.extract_fills(raw_fills)
         perturbed_texts = self.apply_extracted_fills(masked_texts, extracted_fills)
 
-        # Handle the fact that sometimes the model doesn't generate the right number of fills and we have to try again
+        # Some texts never produce valid T5 fills (very short, unusual tokens,
+        # or chunks the mask-filler can't handle). Cap retries and fall back
+        # to the original unperturbed text so the loop can't run forever.
         attempts = 1
-        while '' in perturbed_texts:
+        max_attempts = 10
+        while '' in perturbed_texts and attempts <= max_attempts:
             idxs = [idx for idx, x in enumerate(perturbed_texts) if x == '']
             print(f'WARNING: {len(idxs)} texts have no fills. Trying again [attempt {attempts}].')
             masked_texts = [self.tokenize_and_mask(x, cfg.span_length, cfg.pct, idx_rate, cfg.ceil_pct) for idx, x in enumerate(texts) if idx in idxs]
@@ -294,6 +297,10 @@ class AttackModel:
             for idx, x in zip(idxs, new_perturbed_texts):
                 perturbed_texts[idx] = x
             attempts += 1
+        for idx, p in enumerate(perturbed_texts):
+            if p == '':
+                perturbed_texts[idx] = texts[idx]
+                print(f'  giving up on text {idx} after {max_attempts} attempts; using original')
         return perturbed_texts
 
     @staticmethod

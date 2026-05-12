@@ -1,0 +1,17 @@
+{
+  "model": "gpt2",
+  "dataset": "post_cutoff_wiki",
+  "auc": 0.964225,
+  "tpr_at_1pct_fpr": 0.2,
+  "tpr_at_0_1pct_fpr": 0.2,
+  "dataset_stats": {
+    "n_articles": 5000,
+    "earliest_created": "2020-01-01T00:02:11Z",
+    "latest_created": "2020-11-23T15:30:32Z",
+    "avg_chars": 6265.0714
+  },
+  "paper_reference_wikitext103": {
+    "auc": 0.975,
+    "tpr_at_1pct_fpr": 0.673
+  }
+}

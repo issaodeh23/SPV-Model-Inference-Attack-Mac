@@ -4,6 +4,43 @@ import datasets
 import trl
 from attack.utils import create_folder
 
+
+def _load_local_or_hub(name, config, split):
+    """If env var SPV_MIA_LOCAL_DATASET_PATH is set, load from that directory
+    via load_from_disk and slice. Otherwise fall back to datasets.load_dataset
+    (HF Hub or builtin script).
+
+    Used by the post-cutoff Wikipedia experiment (see
+    `post_cutoff_wiki_test/`). Set SPV_MIA_LOCAL_DATASET_PATH to the directory
+    produced by `02_format.py`; `dataset_name` becomes a label used only for
+    the cache path.
+    """
+    local_path = os.environ.get("SPV_MIA_LOCAL_DATASET_PATH", "").strip()
+    if local_path:
+        loaded = datasets.load_from_disk(local_path)
+        if isinstance(loaded, datasets.DatasetDict):
+            base = loaded["train"]
+        else:
+            base = loaded
+        # Reproduce the `split="train[:N%]"` semantics used below.
+        s = split.replace("train", "").strip("[]")
+        if not s:
+            return base
+        if ":" not in s:
+            raise ValueError(f"unsupported slice for local dataset: {split}")
+        lo, hi = s.split(":")
+        n = len(base)
+        def _resolve(tok, default):
+            if tok == "":
+                return default
+            if tok.endswith("%"):
+                return int(n * int(tok[:-1]) / 100)
+            return int(tok)
+        lo = _resolve(lo, 0)
+        hi = _resolve(hi, n)
+        return base.select(range(lo, hi))
+    return datasets.load_dataset(name, config, split=split)
+
 block_size = None
 tokenizer_ = None
 max_buff_size = None
@@ -55,12 +92,12 @@ def dataset_prepare(args, tokenizer=None, num_of_sequences=1024, chars_per_token
     #     train_dataset = raw_datasets["train"]
     #     valid_dataset = raw_datasets["validation"]
     # else:
-    train_dataset = datasets.load_dataset(
+    train_dataset = _load_local_or_hub(
         args.dataset_name,
         args.dataset_config_name,
-        split=f"train[:{int((1-args.validation_split_percentage)*100)}%]"
+        split=f"train[:{int((1-args.validation_split_percentage)*100)}%]",
     )
-    valid_dataset = datasets.load_dataset(
+    valid_dataset = _load_local_or_hub(
         args.dataset_name,
         args.dataset_config_name,
         split=f"train[{int((1-args.validation_split_percentage)*100)}%:]",

@@ -13,3 +13,10 @@
 
 # ft_llms/{cache, checkpoints}
 
+
+# Post-cutoff Wikipedia validation harness — generated artifacts
+/post_cutoff_wiki_test/data/raw/
+/post_cutoff_wiki_test/data/hf_dataset/
+/post_cutoff_wiki_test/logs/
+/post_cutoff_wiki_test/__pycache__/
+/post_cutoff_wiki_test/results_n*/
