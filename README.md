@@ -5,7 +5,7 @@
 > - **[Term Progress Report →](./progress_report.md)** — full write-up: BRON context, term readings, cybersecurity LLM benchmark survey, Mac port of SPV-MIA, post-cutoff Wikipedia validation, results.
 > - **[Experiment Report →](./post_cutoff_wiki_test/results/REPORT.md)** — standalone report with AUC, ROC plot, sample articles for the post-cutoff Wikipedia run.
 >
-> **Headline result:** SPV-MIA achieves **AUC = 0.964** on a Wikipedia corpus the base GPT-2 has provably never seen (articles created after 2020-01-01), within 1.1 percentage points of the paper's 0.975 on Wikitext-103. This rules out the concern that the paper's signal comes from pretraining leakage rather than fine-tuning memorization.
+> **Headline result:** SPV-MIA achieves **AUC = 0.964** on a 200 sample data from wikipedia that the base GPT-2 has provably never seen (articles created after 2020-01-01), within 1.1 percentage points of the paper's 0.975 on Wikitext-103. This rules out the concern that the paper's signal comes from pretraining leakage rather than fine tuning memorization.
 
 ---
 
